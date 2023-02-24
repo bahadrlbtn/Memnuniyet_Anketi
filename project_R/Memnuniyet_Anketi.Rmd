@@ -1,0 +1,199 @@
+---
+title: "Memnuniyet Anketi"
+author: "Bahadır Baltan"
+date: '2023-02-22'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Veri setimiz temelde League Of Legends(LOL) oyuncularının son gelen güncellemeyi ne kadar beğendiğini ölçmek amacıyla hazırlanmış bir veri setidir. Veri setim; yaş, oynanan koridor, son güncellemeyi beğenme(0-5 üzerinden puan), oyuncunun kümesi, oyuncunun cinsiyeti, oyuncunun oynamayı tercih ettiği harita ve oynamayı tercih ettiği eğlence modları olmak üzere 8 değişkenden oluşmaktadır. Elimdeki veri setiyle bazı çıkarımlarda bulunacağım. Veri setimizi inceleyelim.
+```{r}
+library(readxl)
+projectr <- read_excel("C:/Users/Baha/Desktop/projectr/projectr.xlsx")
+View(projectr)
+```
+
+
+
+### Veri setimizdeki ilk 10 değeri inceyelim
+İlk kişi üzerinden değişkenlerimizi inceleyelim. İlk oyuncumuz 27 yaşında, Support rolünde oynuyor. Son yamayı 5 üzerinden 2 beğenmiş. Silver eloda, erkek, en çok tercih ettiği harita sihirdar vadisi ve oynamayı en sevdiği eğlence modu ultra rekabet faktörüdür(URF).
+
+
+```{r}
+head(projectr, 10)
+```
+
+
+
+### Verimizin cinsiyet oranını inceleyelim.
+Ankete katılanların çoğunluğunun erkek olduğunu görüyoruz. 
+
+```{r}
+projectr
+gender_freq <- table(projectr$GENDER)
+gender_ratio <- gender_freq / sum(gender_freq)
+gender_ratio
+gender_ratio_pie <- c(0.3921569,0.6078431)
+pie(gender_ratio_pie, label=c("Female","Male"))
+```
+
+
+
+### Cinsiyetlerin, oyuncuların son güncellemeyi beğenmesine göre etkisi
+```{r}
+library(ggplot2)
+projectr
+genderdata <- projectr$GENDER
+lastpatchdata <- projectr$`LAST PATCH`
+ggplot(projectr, aes(x= lastpatchdata, y=genderdata, color=genderdata)) + geom_jitter()
+  
+```
+
+
+
+### Cinsiyetlerin, oyuncuların kümelerine etkisi
+Ankete katılan erkek oyuncuların daha çok bronze ve silver eloda olduğu ve katılan kadın oyuncuların bronze ve silver eloda olduğunu söyleyebiliriz.
+```{r}
+projectr
+genderdata <- projectr$GENDER
+elodata <- projectr$ELO
+ggplot(projectr, aes(x= elodata, y=genderdata, color=genderdata)) + geom_count()
+```
+
+
+
+### Challenger elo oyuncuların son güncelleme hakkındaki düşünceleri
+Challeger elo oyuncular bu güncellemeyi 5 üzerinden ortalama 2,16 beğenmiştir. Yani güncellemede yapılan değişikliklerden büyük bir çoğunluğu memnun değil.
+```{r}
+challenger_last_patch <- projectr[projectr$ELO == "Challenger", "LAST PATCH"]
+challenger_last_patch
+mean(challenger_last_patch)
+```
+
+
+
+### Bronze oyunculardan bi data frame oluşturup inceyelim.
+Oyundaki çoğunluğu oluşturan bronze elo oyuncuları bu yamayı 5 üzerinden 3 beğenmişler. 
+```{r}
+bronze_data <- subset(projectr, ELO== "Bronze")
+bronze_data
+library(dplyr)
+data <- data.frame()
+bronze_data <- filter(projectr, ELO=="Bronze")
+mean_last_patch <- mean(bronze_data$"LAST PATCH")
+print(mean_last_patch)
+```
+
+
+
+### Tüm kümelereki oyuncuların yeni güncelleme hakkındaki yorumları
+Diğerlerine göre daha fazla silver, bronze ve demir oyuncunun ankete katıldığını görebiliyoruz. Ve katılım sağlayanlardan alınan en yüksek beğeni oranı elmas(diamond) elo oyunculardan alınmıştır(3,66). Son yamayı en az beğenen 5 üzerinen 2,16 ile challenger elo oyuncuları olmuştur. 
+```{r}
+library(dplyr)
+
+elo_levels <- unique(projectr$ELO) 
+elo_comments <- list() 
+
+for (level in elo_levels) {
+ 
+  elo_data <- filter(projectr, ELO == level) 
+
+  
+  comments <- paste(elo_data$`LAST PATCH`, collapse = ", ")
+
+  
+  elo_comments[[level]] <- comments
+}
+
+
+elo_comments
+```
+
+
+
+### Tüm oyuncuların genel memnuniyet durumu
+ Ankete katılan oyuncuların hepsinin son yamayı beğenme düzeyi 5 üzerinden 2,69 olmuştur.
+```{r}
+ # Verilen sayılar
+numbers <- c(2.53, 2.65, 2.16, 2.41, 2.625, 2.23, 2.96, 3, 3.66)
+
+# Ortalama hesaplama
+mean(numbers)
+
+```
+
+
+
+### Hangi elo oyuncular hangi eğlence modunu seviyor
+Genel kanı olaraktan tüm oyuncular Ultra rekabet faktörü (URF) modunu seviyor. URF modunu yeni gelecek yamada getirmek oyuncuların ilgisini çekecektir.
+```{r}
+library(ggplot2)
+projectr
+elodata <- projectr$ELO
+gamemodesdata <- projectr$`GAME MODES`
+ggplot(projectr, aes(x= gamemodesdata, y=elodata, color=elodata)) + geom_col()
+  
+```
+
+
+
+### Aktif olarak günde +4 saat League of Legends oynuyor mu?
+  Anket yapıldıktan sonra insanlara oyunu şuan aktif olarak günde +4 saat oynayıp oynamadıkları sorulmuş ama veri setine eklenmemiştir. 1 değeri kişinin günde 4 saat ya da daha fazla lol oynadığını,0 değeri ise 4 saatten daha az oynadıklarını göstermektedir.
+```{r}
+projectr <- mutate(projectr, z = c(1,0,0,1,1,1,1,1,0,1,1,0,0,1,1,1,1,1,0,1,1,0,0,1,1,1,1,1,0,1,1,0,0,1,1,1,1,1,0,1,1,0,0,1,1,1,1,1,0,1,1,0,0,1,1,1,1,1,0,1,1,0,0,1,1,1,1,1,0,1,1,0,0,1,1,1,1,1,0,1,1,0,0,1,1,1,1,1,0,1,1,0,0,1,1,1,1,1,0,1,1,0,0,1,1,1,1,1,0,1,1,0,0,1,1,1,1,1,0,1,1,0,0,1,1,1,1,1,0,1,1,0,0,1,1,1,1,1,0,1,1,0,0,1,1,1,1,1,0,1,0,1,0))
+projectr
+```
+
+
+
+### Son yamayı beğenme durumu ile oyunu oynamaya devam etme arasındaki ilişki
+  Son yamayı beğenme durumu ile oyunu oynamaya devam etme arasındaki korelasyon katsayını -0,05 olduğu görülmüştür. Bu değer bize son yamayı beğenme durumunun insanların oyunu oynamaları durumuyla arasındaki ilişkinin çok zayıf olduğu hatta olmadığını göstermektedir. Yani bu verilere göre son güncellemeyi beğenen bir kişinin oyunu günde +4 saat oynayıp oynamayacağı hakkında bir bilgi elde edilememektedir.
+```{r}
+cor.test(projectr$z, projectr$'LAST PATCH')
+
+```
+
+
+
+### 25 yaşından büyüklerin yorumları
+  +25 yaş olan örneklemimizdeki büyük insanların son yama hakkında görüşlerini incelersek eğer ortalama 5 üzerinden 2,75 puanla son yamayı pek beğenmemiş olduklarını söyleyebiliriz.
+```{r}
+  library(readxl)
+library(dplyr)
+
+mean_25 <- projectr %>%
+  filter(AGE > 25) %>%
+  select('LAST PATCH')
+summary(mean_25)
+```
+
+
+
+### Kadınlar ve erkekler hangi oyun modlarından hoşlanıyor 
+```{r}
+library(ggplot2)
+install.packages("readxl")
+library(readxl)
+projectr <- read_excel("C:/Users/Baha/Desktop/projectr/projectr.xlsx")
+projectr
+genderdata <- projectr$GENDER
+gamemodesdata <- projectr$`GAME MODES`
+ggplot(projectr, aes(x= gamemodesdata, y=genderdata, color=genderdata)) + geom_col()
+  
+```
+
+
+
+### Son yorumlar
+  Genel olarak League of Legends adlı oyunumuza gelen son yama pek beğeni görmemiştir. Ve özellikle incelenen +25 kitleninde oyundan memnun olmadığı saptanmıştır. Ve oyunculara sorulan en sevdiğiniz oyun modu nedir sorusunu açık ara Ultra rekabet faktörü (URF) modu kazanmış olup sıradaki güncellemede URF modunu oyuna eklemenin geri dönüşlerde iyi bir etki yaratacağı öngörülmektedir.
+  
+
+
+
+
+
+
+
